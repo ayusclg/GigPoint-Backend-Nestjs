@@ -1,0 +1,158 @@
+import mongoose, { Document} from "mongoose";
+import jwt from 'jsonwebtoken'
+
+
+
+
+
+
+export interface Iuser extends Document{
+    googleId?: string;
+    fullName: string,
+    email: string,
+    password?: string;
+    profilePicture: string;
+    phoneNo: string;
+    address?: string;
+    skills: skills[];
+    experienceYear: number,
+    jobDone: mongoose.Types.ObjectId[];
+    gender: "male" | "female" | "other";
+    role: "user" | "worker" | "admin";
+    generateRefreshToken(): string;
+    generateAccessToken(): string;
+    jobPosted: mongoose.Types.ObjectId[];
+    jobApplied: mongoose.Types.ObjectId[]
+    rating: mongoose.Types.ObjectId[];
+    isAvailable: boolean;
+    resetOtp: string | undefined;
+    resetOtpExpiry: Date | undefined;
+    passwordChangedAt: Date;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+
+enum skills{
+    Plumber="plumber",
+    Electrician="electrician",
+    Cleaner="cleaner",
+    Saloon="saloon",
+    Carpentry="carpentry",
+    Driver="driver",
+    HomeRenovation="homeRenovation",
+
+}
+export enum gender{
+    "male",
+    "female",
+    "other"
+}
+export const userSchema = new mongoose.Schema({
+    googleId: {
+        type:String
+    },
+    fullName: {
+        type: String,
+        required:true
+    },
+    email: {
+        type: String,
+        required: true,
+        unique:true,
+    },
+    password: {
+        type: String,
+        
+    },
+    profilePicture: {
+        type: String,
+        required:true,
+    },
+    role: {
+        type: String,
+        enum: ["user", "worker", "admin"],
+        required:true
+    },
+    phoneNo: {
+        type: String,  
+        unique: true, 
+        
+    },
+    address: {
+        type: String,
+    },
+    skills: [{
+        type: String,
+        enum:Object.values(skills)
+    }],
+    experienceYear: {
+        type:Number,
+    },
+    jobDone: [{
+        type: mongoose.Types.ObjectId,
+        ref:"Job"
+    }],
+    jobPosted:[ {
+        type: mongoose.Types.ObjectId,
+        ref:"Job"
+    }],
+    gender: {
+        type: String,
+        enum:Object.values(gender),
+        required:true,
+    },
+    refreshToken: {
+        type: String,
+    },
+    jobApplied:[ {
+        type: mongoose.Types.ObjectId,
+        ref:"Application"
+    }],
+    rating: [{
+        type: mongoose.Types.ObjectId,
+        ref:"Rating"
+    }],
+   isAvailable: {
+       type: Boolean,
+       default:true
+    },
+    resetOtp: {
+        type: String,
+        
+    },
+    resetOtpExpiry: {
+        type:Date,
+    }
+},
+    {
+    timestamps:true,
+    }
+)
+ 
+
+userSchema.methods.generateRefreshToken = function () {
+    return jwt.sign({
+        _id: this._id,
+        
+    }, process.env.REFRESH_TOKEN_SECRET as string,
+        {
+            expiresIn:process.env.REFRESH_TOKEN_EXPIRY as any
+        }
+    )
+}
+userSchema.methods.generateAccessToken = function () {
+    return jwt.sign({
+        _id: this._id,
+        email: this.email,
+        fullName: this.fullName,
+        gender:this.gender
+        
+    }, process.env.ACCESS_TOKEN_SECRET as string,
+        {
+            expiresIn:process.env.ACCESS_TOKEN_EXPIRY as any
+        }
+    )
+}
+
+export const User = mongoose.model<Iuser>("User",userSchema)
